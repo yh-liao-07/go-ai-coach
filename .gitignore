@@ -1,0 +1,13 @@
+# KataGo 运行时日志
+katago/analysis_logs/
+katago/katago_logs/
+
+# 引擎安装包（内容已解压到同目录，重复）
+katago/katago-eigen-win.zip
+
+# 依赖目录（本项目零 npm 依赖，规则留着）
+node_modules/
+
+# 系统垃圾文件
+Thumbs.db
+.DS_Store

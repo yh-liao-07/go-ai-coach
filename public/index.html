@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>围棋 AI 启蒙教练</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- 顶部标题栏 -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">碁</span>
+        <span class="brand-name">围棋 AI 启蒙教练</span>
+        <span class="brand-sub">边下边学</span>
+      </div>
+      <div class="topbar-status">
+        <span id="conn-dot" class="dot dot-ok"></span>
+        <span id="conn-text">后端未连接</span>
+      </div>
+    </header>
+
+    <!-- 主区域：左侧棋盘 + 右侧面板 -->
+    <main class="main">
+      <!-- 棋盘区 -->
+      <section class="board-panel">
+        <div class="board-toolbar">
+          <div class="seg" id="size-seg">
+            <button data-size="9" class="active">9 路</button>
+            <button data-size="13">13 路</button>
+            <button data-size="19">19 路</button>
+          </div>
+        </div>
+        <div class="board-wrap">
+          <canvas id="board" class="board-canvas"></canvas>
+          <div class="board-overlay" id="board-overlay"></div>
+        </div>
+        <div class="board-hint" id="board-hint">轮到黑方落子</div>
+        <div class="winrate-bar" id="winrate-bar">
+          <div class="winrate-black" id="winrate-black"></div>
+          <div class="winrate-white" id="winrate-white"></div>
+        </div>
+        <div class="winrate-labels">
+          <span id="wr-black-label">黑 50%</span>
+          <span id="wr-white-label">白 50%</span>
+        </div>
+      </section>
+
+      <!-- 右侧标签面板 -->
+      <section class="side-panel">
+        <nav class="tabs" id="tabs">
+          <button data-tab="play" class="active">对局</button>
+          <button data-tab="coach">教练</button>
+          <button data-tab="problems">死活题</button>
+          <button data-tab="review">棋谱</button>
+          <button data-tab="analyze">分析</button>
+          <button data-tab="settings">设置</button>
+        </nav>
+
+        <!-- 对局 -->
+        <div class="tab-body active" id="tab-play">
+          <div class="ctrl-grid">
+            <button id="btn-new" class="btn">新对局</button>
+            <button id="btn-pass" class="btn">停一手</button>
+            <button id="btn-undo" class="btn">悔棋</button>
+            <button id="btn-resign" class="btn btn-danger">认输</button>
+            <button id="btn-auto-play" class="btn">自动按蓝点下棋</button>
+          </div>
+
+          <div class="field">
+            <label>我执</label>
+            <div class="seg" id="color-seg">
+              <button data-color="1" class="active">黑</button>
+              <button data-color="2">白</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>对手引擎</label>
+            <select id="opponent-type">
+              <option value="katago">KataGo 引擎</option>
+              <option value="local">内置 AI（离线可用）</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>难度</label>
+            <div class="seg" id="level-seg">
+              <button data-level="入门" class="active">入门</button>
+              <button data-level="进阶">进阶</button>
+              <button data-level="挑战">挑战</button>
+            </div>
+          </div>
+
+          <div class="field check-row">
+            <label><input type="checkbox" id="opt-show-coords" checked /> 显示坐标</label>
+            <label><input type="checkbox" id="opt-show-territory" /> 显示形势（小方格）</label>
+          </div>
+          <div class="field check-row">
+            <label><input type="checkbox" id="opt-auto-explain" /> 每手自动讲解</label>
+          </div>
+
+          <div class="info-card">
+            <div class="info-row"><span>提子</span><span id="info-captures">黑 0 : 白 0</span></div>
+            <div class="info-row"><span>手数</span><span id="info-moves">0</span></div>
+            <div class="info-row"><span>目数（估）</span><span id="info-score">黑 0 : 白 0</span></div>
+          </div>
+
+          <div class="field">
+            <label>对局记录</label>
+            <div class="moves-list" id="moves-list"></div>
+          </div>
+
+          <div class="field sgf-row">
+            <button id="btn-save-sgf" class="btn btn-ghost">导出 SGF</button>
+            <button id="btn-load-sgf" class="btn btn-ghost">导入 SGF</button>
+            <input type="file" id="sgf-file" accept=".sgf" style="display:none" />
+          </div>
+        </div>
+
+        <!-- 教练 -->
+        <div class="tab-body" id="tab-coach">
+          <p class="tip">和教练对话，有疑问随时点棋盘上的位置问它“这里怎么样”。</p>
+          <div class="coach-quick">
+            <button class="btn btn-small" data-coach="recommend">推荐一手</button>
+            <button class="btn btn-small" data-coach="review_last">复盘上一手</button>
+            <button class="btn btn-small" data-coach="position">形势判断</button>
+            <button class="btn btn-small" data-coach="territory">目数估计</button>
+          </div>
+          <div class="coach-chat" id="coach-chat"></div>
+          <div class="coach-input-row">
+            <input type="text" id="coach-input" placeholder="向教练提问…" />
+            <button id="btn-coach-send" class="btn btn-small">发送</button>
+          </div>
+          <div class="coach-streaming" id="coach-streaming" hidden></div>
+        </div>
+
+        <!-- 死活题 -->
+        <div class="tab-body" id="tab-problems">
+          <div class="field">
+            <button id="btn-prev-prob" class="btn btn-ghost">上一题</button>
+            <span class="prob-counter" id="prob-counter">1 / 16</span>
+            <button id="btn-next-prob" class="btn btn-ghost">下一题</button>
+          </div>
+          <div class="prob-name" id="prob-name"></div>
+          <div id="prob-board-wrap" class="prob-board-wrap"></div>
+          <canvas id="prob-board" class="prob-board"></canvas>
+          <div class="prob-text">
+            <div id="prob-tip" class="prob-tip"></div>
+            <div id="prob-expl" class="prob-expl" hidden></div>
+          </div>
+          <div class="field">
+            <button id="btn-prob-tip" class="btn btn-ghost">显示提示</button>
+            <button id="btn-prob-check" class="btn">提交答案</button>
+            <button id="btn-prob-reset" class="btn btn-ghost">重置</button>
+          </div>
+          <div id="prob-result" class="prob-result"></div>
+        </div>
+
+        <!-- 棋谱 -->
+        <div class="tab-body" id="tab-review">
+          <p class="tip">导入 / 导出 SGF 棋谱，并逐手回放复习。</p>
+          <div class="field sgf-row">
+            <button id="btn-import-sgf2" class="btn">导入棋谱</button>
+            <button id="btn-export-sgf2" class="btn">导出棋谱</button>
+            <input type="file" id="sgf-file2" accept=".sgf" style="display:none" />
+          </div>
+          <div class="field">
+            <label>棋谱文本（SGF）</label>
+            <textarea id="sgf-text" rows="6" placeholder="粘贴 SGF 内容，或导入后自动显示"></textarea>
+          </div>
+          <div class="field">
+            <button id="btn-parse-sgf" class="btn">解析并回放</button>
+          </div>
+          <div class="review-controls" id="review-controls" hidden>
+            <button id="btn-rev-prev" class="btn btn-ghost">‹ 上一手</button>
+            <button id="btn-rev-next" class="btn btn-ghost">下一手 ›</button>
+            <span id="rev-counter"></span>
+          </div>
+        </div>
+
+        <!-- 分析 -->
+        <div class="tab-body" id="tab-analyze">
+          <p class="tip">在这个棋盘上自由摆子排局面，再让 KataGo 分析每一步的优劣。与正式对局互不影响。</p>
+
+          <div class="field">
+            <label>摆子工具</label>
+            <div class="seg" id="analyze-color-seg">
+              <button data-analyze="black" class="active">黑子</button>
+              <button data-analyze="white">白子</button>
+              <button data-analyze="erase">删子</button>
+            </div>
+          </div>
+
+          <div class="analyze-board-wrap">
+            <canvas id="analyze-board" class="analyze-board"></canvas>
+          </div>
+
+          <div class="analysis-tools">
+            <button id="btn-analyze-point" class="btn btn-ghost" aria-pressed="false">点格分析</button>
+            <button id="btn-analyze-all" class="btn btn-ghost">整盘分析</button>
+            <button id="btn-analyze-clear" class="btn btn-ghost">清空</button>
+            <button id="btn-analyze-copy" class="btn btn-ghost">复制主局面</button>
+            <button id="btn-analyze-export" class="btn btn-ghost">导出 SGF</button>
+          </div>
+
+          <div class="field check-row">
+            <label><input type="checkbox" id="opt-analyze-show-coords" checked /> 显示坐标</label>
+          </div>
+
+          <div class="analysis-hint" id="analyze-hint">点击格子摆子；右键（或 Shift+点击）某格触发 KataGo 点格分析。</div>
+          <div class="analysis-result" id="analyze-result"></div>
+
+          <div class="analysis-coach">
+            <div class="coach-chat" id="analyze-chat"></div>
+            <div class="coach-quick">
+              <button id="btn-analyze-ask-point" class="btn btn-small">这里怎么样？</button>
+              <button id="btn-analyze-explain" class="btn btn-small">讲解当前局面</button>
+            </div>
+            <div class="coach-input-row">
+              <input type="text" id="analyze-input" placeholder="提出你的想法，或问教练…（如：我想下 D4 行不行？）" />
+              <button id="btn-analyze-send" class="btn btn-small">发送</button>
+            </div>
+            <div class="coach-streaming" id="analyze-streaming" hidden></div>
+          </div>
+        </div>
+
+        <!-- 设置 -->
+        <div class="tab-body" id="tab-settings">
+          <p class="tip">教练和对手各配一套 API，互不影响，保存在浏览器本地。</p>
+
+          <fieldset class="cfg-group">
+            <legend>教练 AI（讲解用）</legend>
+            <div class="field"><label>Base URL</label><input id="cfg-coach-url" type="text" placeholder="https://api.llm.ustc.edu.cn" /></div>
+            <div class="field"><label>API Key</label><input id="cfg-coach-key" type="password" placeholder="sk-..." /></div>
+            <div class="field"><label>模型</label><input id="cfg-coach-model" type="text" placeholder="deepseek-v4-pro" /></div>
+            <div class="field">
+              <label>KataGo 数据量（讲解时附上多少引擎数据）</label>
+              <select id="cfg-kata-level">
+                <option value="brief">简略：只看胜率和前三候选</option>
+                <option value="top5" selected>标准：胜率 + 前五候选 + 目差（推荐）</option>
+                <option value="full">详细：全部候选 + 地界 + 目差，稍慢</option>
+              </select>
+            </div>
+          </fieldset>
+
+          <fieldset class="cfg-group">
+            <legend>对手 AI（对弈用）</legend>
+            <div class="field"><label>Base URL</label><input id="cfg-opp-url" type="text" placeholder="https://api.llm.ustc.edu.cn" /></div>
+            <div class="field"><label>API Key</label><input id="cfg-opp-key" type="password" placeholder="sk-..." /></div>
+            <div class="field"><label>模型</label><input id="cfg-opp-model" type="text" placeholder="deepseek-v4-flash" /></div>
+          </fieldset>
+
+          <div class="field">
+            <button id="btn-save-cfg" class="btn">保存配置</button>
+            <button id="btn-test-cfg" class="btn btn-ghost">测试连接</button>
+          </div>
+          <div id="cfg-test-result" class="tip"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 后端模型说明 -->
+    <footer class="foot">
+      <span>默认用内置 AI 对弈；想让教练讲解，到「设置」页填 API。</span>
+    </footer>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

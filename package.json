@@ -1,0 +1,10 @@
+{
+  "name": "go-ai-coach-web",
+  "version": "1.0.0",
+  "description": "围棋 AI 启蒙教练（网页版）",
+  "type": "module",
+  "scripts": {
+    "start": "node server.cjs"
+  },
+  "engines": { "node": ">=18" }
+}

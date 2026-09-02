@@ -66,7 +66,7 @@ public/
   js/
     go_core.js       # 围棋规则引擎（棋盘/提子/气/劫）
     go_ai.js         # 内置 AI 对手（三档）
-    problems.js      # 29 道死活题（摆子/答案/提示/讲解）
+    problems.js      # 16 道死活题（摆子/答案/提示/讲解）
     sgf.js           # SGF 棋谱读写
     katago_client.js # KataGo 分析的前端调用
     ai_api.js        # 大模型对手 + 讲解 + 流式
